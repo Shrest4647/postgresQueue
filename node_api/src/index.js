@@ -1,31 +1,13 @@
-// importing the dependencies
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
-const PgBoss = require("pg-boss");
-const { someAsyncJobHandler0, someAsyncJobHandler1, someAsyncJobHandler2 } = require('./app');
 
-// defining the Express app
+const { saveJobResult } = require("./db/saveJobResult");
+const { queues, boss } = require("./queue/boss");
+
 const app = express();
-
-const boss = new PgBoss({connectionString: "postgres://postgres:postgres@localhost:5438/postgres", monitorStateIntervalSeconds: 2 } );
-boss.on("error", (error) => console.error(error));
-// boss.on("monitor-states", (payload) => {
-//   console.log(payload);
-// });
-boss.on("wip", (payload) => {
-    console.log(payload)
-})
-let queue = "task_queue";
-boss.start().then(async _ => {
-    await boss.work(queue, { teamSize: 5, teamRefill: true}, someAsyncJobHandler0);
-});
-
-
-// defining an array to work as the database (temporary solution)
-const ads = [{ title: "Hello, world (again)!" }];
 
 // adding Helmet to enhance your API's security
 app.use(helmet());
@@ -41,21 +23,58 @@ app.use(morgan("combined"));
 
 // defining an endpoint to return all ads
 app.get("/", (req, res) => {
-  res.send(boss);
+  res.send(boss.getQueueSize(queues[0]));
 });
 
-app.post("/add", async (req, res) => {
-  let data = req.body;
-  let newAd = data.ad;
-  let jobId = await boss.send(queue, { ad: newAd }, { retryLimit: 5, retryDelay: 20, expireInSeconds: 60,  });
+app.post("/square", async (req, res) => {
+  let value = req.body.value;
+  let jobId = await boss.send(
+    queues[0],
+    { value },
+    { retryLimit: 5, retryDelay: 20, expireInSeconds: 60 }
+  );
+  boss.onComplete(jobId, (job) => {
+    saveJobResult(job);
+  });
   res.send(jobId);
 });
 
-app.get("/workstatus/:jobId", async (req, res) => {
-    job = await boss.getJobById(req.params.jobId);
-    res.send(job)
+app.post("/squareroot", async (req, res) => {
+  let value = req.body.value;
+  let jobId = await boss.send(
+    queues[1],
+    { value },
+    { retryLimit: 5, retryDelay: 20, expireInSeconds: 60 }
+  );
+  boss.onComplete(jobId, (job) => {
+    saveJobResult(job);
+  });
+  res.send(jobId);
 });
-// starting the server
+
+app.post("/cube", async (req, res) => {
+  let value = req.body.value;
+  let jobId = await boss.send(
+    queues[2],
+    { value },
+    { retryLimit: 5, retryDelay: 20, expireInSeconds: 60 }
+  );
+  boss.onComplete(jobId, (job) => {
+    saveJobResult(job);
+  });
+  res.send(jobId);
+});
+
+app.get("/status/:jobId", async (req, res) => {
+  let job = await boss.getJobById(req.params.jobId);
+  res.send(job);
+});
+
+app.get("/results/:jobId", async (req, res) => {
+  let result = getJobById(req.params.jobId);
+  res.send(result);
+});
+
 app.listen(3001, () => {
   console.log("listening on port 3001");
 });
