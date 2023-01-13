@@ -83,3 +83,8 @@ CREATE TABLE IF NOT EXISTS order_status (
 	  REFERENCES status_name(status_name_id)  
 );
 
+CREATE TABLE IF NOT EXISTS job_result (
+  job_id varchar(20) NOT NULL,
+	info json NOT NULL
+);
+
