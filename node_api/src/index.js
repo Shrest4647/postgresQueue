@@ -34,6 +34,7 @@ app.post("/square", async (req, res) => {
     { retryLimit: 5, retryDelay: 20, expireInSeconds: 60 }
   );
   boss.onComplete(jobId, (job) => {
+    console.log(`0: Job Completed: ${jobId}`)
     saveJobResult(job);
   });
   res.send(jobId);
@@ -47,6 +48,7 @@ app.post("/squareroot", async (req, res) => {
     { retryLimit: 5, retryDelay: 20, expireInSeconds: 60 }
   );
   boss.onComplete(jobId, (job) => {
+    console.log(`1: Job Completed: ${jobId}`)
     saveJobResult(job);
   });
   res.send(jobId);
@@ -60,6 +62,21 @@ app.post("/cube", async (req, res) => {
     { retryLimit: 5, retryDelay: 20, expireInSeconds: 60 }
   );
   boss.onComplete(jobId, (job) => {
+    console.log(`2: Job Completed: ${jobId}`)
+    saveJobResult(job);
+  });
+  res.send(jobId);
+});
+
+app.post("/cmd", async (req, res) => {
+  let value = req.body.value;
+  let jobId = await boss.send(
+    queues[3],
+    { value },
+    { retryLimit: 5, retryDelay: 20, expireInSeconds: 60 }
+  );
+  boss.onComplete(jobId, (job) => {
+    console.log(`3: Job Completed: ${jobId}`)
     saveJobResult(job);
   });
   res.send(jobId);
@@ -71,7 +88,9 @@ app.get("/status/:jobId", async (req, res) => {
 });
 
 app.get("/results/:jobId", async (req, res) => {
-  let result = getJobById(req.params.jobId);
+  let result = await boss.getJobById(req.params.jobId);
+  let completed = await boss.fetchCompleted(req.params.jobId);
+  console.log({result, completed })
   res.send(result);
 });
 

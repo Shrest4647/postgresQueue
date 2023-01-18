@@ -14,7 +14,7 @@ const pool = new Pool({
 
 pool
   .connect()
-  .then(() => console.log("connected"))
+  .then(() => console.log("Pool connected"))
   .catch((err) => console.error("connection error", err.stack));
 
 pool.on("error", (err) => {
